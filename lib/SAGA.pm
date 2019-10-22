@@ -3,11 +3,11 @@ use Actors;
 
 our $app = app saga_pattern => sub {
     actor order_service => sub {
-        my $counter = 1;
+        my $counter = 0;
         my $contracts = {};
         case buy_contract => qw(session), sub {
             my ($self, $session) = @_;
-            my $id = $counter++;
+            my $id = ++$counter;
             $contracts->{$id}{status} = 'pending';
             $self->send( contract_created => { id => $id , session => $session } );
         };

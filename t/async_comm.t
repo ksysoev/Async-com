@@ -5,6 +5,7 @@ use RPC;
 use Notification;
 use Aggregation;
 use SAGA;
+use CQRS;
 
 use Test::More;
 use Digest::MD5 qw(md5_hex);
@@ -36,6 +37,23 @@ subtest 'Aggregation' => sub {
     $Aggregation::app->subscribe($random_name => sub { $result = $_[1] });
     $Aggregation::app->send( get_user_profile => { user_id => 'user1', reply_to => $random_name } );
     is_deeply $result , {user_id => 'user1', balance => 100, open_contracts => ['test_contract']}, 'Got expected data';
+};
+
+subtest 'CQRS' => sub {
+    my $order_id;
+    $CQRS::app->subscribe(something_created => sub { $order_id = $_[1]->{id} });
+    $CQRS::app->send( buy_something => {});
+    is $order_id, 1, 'Got order id';
+
+    my $result;
+    my $random_name = md5_hex(time . rand);
+    $CQRS::app->subscribe($random_name => sub { $result = $_[1] });
+    
+    $CQRS::app->send( get_something => { id => $order_id, reply_to => $random_name } );
+    is_deeply $result, { id => 1, status => 'new' }, 'Got something';   
+
+    $CQRS::app->send( get_statistic => { reply_to => $random_name } );
+    is_deeply $result, { new_something => 1 }, 'Got statistic';
 };
 
 subtest 'SAGA' => sub {
